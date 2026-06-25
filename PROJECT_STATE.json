@@ -1,0 +1,439 @@
+﻿{
+    "_meta":  {
+                  "IMPORTANT_DO_NOT_DELETE":  "Ce fichier est la mÃ©moire persistante du projet \u0027Jean Prevost Social\u0027. Il doit Ãªtre lu en entier par toute IA qui commence Ã  travailler sur ce projet. Il doit Ãªtre mis Ã  jour Ã  chaque modification significative du code, de la base de donnÃ©es, de la configuration ou du dÃ©ploiement. Son objectif est de permettre Ã  n\u0027importe quelle IA de reprendre le travail exactement lÃ  oÃ¹ la prÃ©cÃ©dente s\u0027est arrÃªtÃ©e, sans avoir Ã  relire tous les fichiers source. Ne jamais supprimer ce fichier ni son bloc \u0027_meta\u0027.",
+                  "last_updated":  "2026-06-20",
+                  "updated_by":  "Codex GPT-5",
+                  "project_name":  "Jean Prevost Social",
+                  "project_description":  "RÃ©seau social pour le lycÃ©e Jean PrÃ©vost. Style sombre, rapide, inspirÃ© de Twitter/X, Reddit et Instagram. DestinÃ© aux lycÃ©ens.",
+                  "repo":  "github.com/adamaroua/R-seau_JP",
+                  "local_path":  "C:\\Users\\adama\\Documents\\RÃ©seau LycÃ©e"
+              },
+    "stack":  {
+                  "framework":  "Next.js 16.2.9 (App Router, TypeScript)",
+                  "styling":  "TailwindCSS 3 + clsx + tailwind-merge",
+                  "database_and_auth":  "Supabase (Auth, PostgreSQL, Storage, Realtime)",
+                  "validation":  "Zod",
+                  "icons":  "lucide-react",
+                  "runtime_target":  "Node.js (dev/Vercel) + Cloudflare Workers (via OpenNext)",
+                  "package_manager":  "npm",
+                  "node_version":  "LTS (testÃ© localement sous Windows)"
+              },
+    "deployment":  {
+                       "primary_target":  "Vercel (free tier)",
+                       "secondary_target":  "Cloudflare Pages/Workers via @opennextjs/cloudflare + wrangler",
+                       "build_command_vercel":  "npm run build",
+                       "build_command_cloudflare":  "npm run build:cloudflare puis npm run deploy si deploiement via Wrangler",
+                       "cron_job":  {
+                                        "path":  "/api/cron/cleanup",
+                                        "schedule":  "0 3 * * *",
+                                        "description":  "Supprime les posts expirÃ©s et leurs mÃ©dias Storage chaque nuit Ã  3h",
+                                        "auth":  "Bearer token via header Authorization ou query param ?secret=CRON_SECRET"
+                                    },
+                       "domain":  "jpzone.duckdns.org",
+                       "notes":  [
+                                     "middleware.ts (Edge compatible) est utilise a la place de proxy.ts pour la compatibilite OpenNext/Cloudflare",
+                                     "proxy.ts a ete supprime car il etait runtime Node et cassait Cloudflare",
+                                     "middleware.ts est marque deprecated par Next 16 mais reste necessaire pour OpenNext",
+                                     "wrangler.jsonc et open-next.config.ts sont en place",
+                                     "La migration opennextjs-cloudflare migrate a deja ete executee",
+                                     "2026-06-20: npm run build, npm run build:cloudflare et wrangler deploy --dry-run sont valides"
+                                 ]
+                   },
+    "env_variables":  {
+                          "NEXT_PUBLIC_SUPABASE_URL":  "URL du projet Supabase (ex: https://xxx.supabase.co)",
+                          "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY":  "ClÃ© publique Supabase (sb_publishable_...)",
+                          "SUPABASE_SECRET_KEY":  "ClÃ© secrÃ¨te Supabase (sb_secret_...) â€” serveur uniquement, jamais exposÃ©e cÃ´tÃ© client",
+                          "CRON_SECRET":  "Secret pour protÃ©ger l\u0027endpoint /api/cron/cleanup",
+                          "NEXT_PUBLIC_SITE_URL":  "URL publique du site (https://jpzone.duckdns.org)",
+                          "notes":  [
+                                        ".env.local contient les vraies clÃ©s locales â€” jamais committÃ© (dans .gitignore)",
+                                        ".env.example contient uniquement des placeholders",
+                                        ".dev.vars est pour wrangler (Cloudflare local dev)",
+                                        "NEXT_PUBLIC_SUPABASE_ANON_KEY et SUPABASE_SERVICE_ROLE_KEY sont des alias acceptÃ©s"
+                                    ]
+                      },
+    "auth_system":  {
+                        "provider":  "Supabase Auth (Email + Password) via creation serveur admin",
+                        "email_strategy":  "invisible - l\u0027utilisateur ne saisit jamais d\u0027email. Le serveur genere automatiquement un email technique \u0027identifiant@jpzone.local\u0027 puis cree l\u0027utilisateur avec admin.auth.admin.createUser(email_confirm: true).",
+                        "identifier_domain":  "jpzone.local",
+                        "login_fields":  [
+                                             "identifiant (username)",
+                                             "mot de passe"
+                                         ],
+                        "register_fields":  [
+                                                "identifiant unique",
+                                                "mot de passe (min 8 chars)"
+                                            ],
+                        "username_rules":  "3-24 chars, lettres/chiffres/underscore uniquement, stockÃ© en lowercase (citext en BDD)",
+                        "password_rules":  "min 8, max 128 chars",
+                        "session":  "Cookie httpOnly gÃ©rÃ© par @supabase/ssr",
+                        "middleware":  "middleware.ts rafraÃ®chit la session Supabase sur chaque requÃªte (runtime Edge)",
+                        "rate_limit_register":  "max 5 comptes crÃ©Ã©s par IP par 24h (table action_rate_limits)",
+                        "first_admin":  "ExÃ©cuter supabase/seed.sql en remplaÃ§ant \u0027jp_admin\u0027 par le username voulu"
+                    },
+    "roles":  {
+                  "user":  {
+                               "color":  "rouge (#ff3b5f / text-danger)",
+                               "badge":  "point rouge",
+                               "permissions":  [
+                                                   "poster",
+                                                   "liker/disliker",
+                                                   "commenter",
+                                                   "sauvegarder",
+                                                   "signaler",
+                                                   "supprimer ses propres posts",
+                                                   "modifier son profil",
+                                                   "changer de mot de passe",
+                                                   "supprimer son compte",
+                                                   "envoyer des messages privÃ©s"
+                                               ]
+                           },
+                  "moderator":  {
+                                    "color":  "bleu ciel (#4cc9f0 / text-sky)",
+                                    "badge":  "icÃ´ne Sparkles + texte \u0027modo\u0027",
+                                    "permissions":  [
+                                                        "tout ce que user peut faire",
+                                                        "voir les signalements",
+                                                        "marquer un post comme frauduleux",
+                                                        "accÃ¨s /admin"
+                                                    ]
+                                },
+                  "admin":  {
+                                "color":  "vert (#31df82 / text-admin)",
+                                "badge":  "icÃ´ne ShieldCheck + texte \u0027admin\u0027",
+                                "permissions":  [
+                                                    "tout ce que moderator peut faire",
+                                                    "supprimer n\u0027importe quel post",
+                                                    "changer le rÃ´le de n\u0027importe quel utilisateur",
+                                                    "accÃ¨s complet au dashboard admin"
+                                                ]
+                            }
+              },
+    "pages":  {
+                  "/":  "Redirige automatiquement vers /feed",
+                  "/auth/login":  "Page de connexion â€” identifiant + mot de passe, pas d\u0027email visible",
+                  "/auth/register":  "Page d\u0027inscription â€” identifiant unique + mot de passe",
+                  "/feed":  "Feed principal avec infinite scroll, composer de post, publicitÃ©s placeholder, tendances",
+                  "/saved":  "Posts sauvegardÃ©s par l\u0027utilisateur connectÃ©",
+                  "/chat":  "Messagerie privÃ©e temps rÃ©el (liste conversations + fenÃªtre messages)",
+                  "/profile/[username]":  "Profil public d\u0027un utilisateur avec ses posts",
+                  "/settings":  "ParamÃ¨tres : modifier pseudo/nom/bio, changer photo de profil, changer mot de passe, voir quotas de stockage, se dÃ©connecter, supprimer le compte",
+                  "/admin":  "Dashboard modÃ©ration â€” accessible uniquement aux admin et moderator"
+              },
+    "api_routes":  {
+                       "POST /api/auth/register":  "Inscription - cree un compte Supabase Auth confirme avec email technique, verifie unicite du pseudo, rate limit 5/IP/24h",
+                       "GET /api/posts":  "Feed paginÃ© via cursor â€” scope: all|saved|user, username optionnel, appelle RPC get_feed_posts",
+                       "POST /api/posts":  "CrÃ©er un post (texte et/ou image), vÃ©rifie quota upload (10Mo/jour), rate limit 8 posts/heure",
+                       "DELETE /api/posts/[id]":  "Supprimer son propre post (ou admin) + supprime le mÃ©dia Storage associÃ©",
+                       "POST /api/posts/[id]/react":  "Like ou dislike toggle â€” renvoie les nouveaux compteurs et viewer_reaction",
+                       "GET /api/posts/[id]/comments":  "Liste les commentaires d\u0027un post avec auteur hydratÃ©",
+                       "POST /api/posts/[id]/comments":  "Ajouter un commentaire, rate limit 20/heure",
+                       "POST /api/posts/[id]/save":  "Sauvegarder/desauvegarder un post (toggle), controle le quota applicatif 25 Mo avant insert et reste protege par trigger BDD",
+                       "POST /api/posts/[id]/report":  "Signaler un post avec une raison, rate limit 10/heure",
+                       "GET /api/notifications":  "Liste les 20 derniÃ¨res notifications de l\u0027utilisateur connectÃ©",
+                       "PATCH /api/notifications":  "Marquer toutes les notifications non lues comme lues",
+                       "GET /api/chat/conversations":  "Liste les conversations avec dernier message et profil de l\u0027autre participant",
+                       "POST /api/chat/conversations":  "CrÃ©er ou retrouver une conversation existante avec un utilisateur (par username)",
+                       "GET /api/chat/messages":  "Messages d\u0027une conversation (param: conversationId), max 120",
+                       "POST /api/chat/messages":  "Envoyer un message dans une conversation, rate limit 80/heure",
+                       "GET /api/profile":  "Profil de l\u0027utilisateur connectÃ© avec avatar_url signÃ©",
+                       "PATCH /api/profile":  "Modifier pseudo/nom affichÃ©/bio, rate limit 20/heure",
+                       "POST /api/profile/avatar":  "Upload avatar (JPEG/PNG/WebP, max 2Mo), vÃ©rifie signature fichier, quota 10Mo/jour",
+                       "PATCH /api/profile/password":  "Changer mot de passe, rate limit 5/heure",
+                       "DELETE /api/profile/delete":  "Supprimer dÃ©finitivement le compte Supabase Auth, rate limit 2/24h",
+                       "GET /api/admin/reports":  "Liste les 80 derniers signalements avec post et utilisateurs hydratÃ©s â€” staff uniquement",
+                       "POST /api/admin/reports/[id]/fraudulent":  "Marquer/dÃ©marquer un signalement comme frauduleux â€” staff uniquement",
+                       "DELETE /api/admin/posts/[id]":  "Supprimer n\u0027importe quel post (admin uniquement) + supprime le mÃ©dia Storage",
+                       "PATCH /api/admin/users/[id]/role":  "Changer le rÃ´le d\u0027un utilisateur par son ID â€” admin uniquement",
+                       "PATCH /api/admin/users/role":  "Changer le rÃ´le d\u0027un utilisateur par son username â€” admin uniquement",
+                       "GET /api/cron/cleanup":  "Supprime les posts expirÃ©s et leurs mÃ©dias â€” protÃ©gÃ© par CRON_SECRET"
+                   },
+    "components":  {
+                       "layout":  {
+                                      "AppShell":  "Conteneur principal: Sidebar (desktop) + TopBar + MobileNav (mobile) + slot children",
+                                      "Sidebar":  "Barre latÃ©rale fixe desktop â€” logo, navigation, profil rÃ©sumÃ©, AdPlaceholder compact",
+                                      "TopBar":  "Barre haute sticky â€” titre de page, username/role, bouton notifications, avatar",
+                                      "MobileNav":  "Navigation bottom fixe mobile â€” Feed, Save, Chat, Profil, Mod (si staff)",
+                                      "NotificationsButton":  "Cloche avec badge compteur non-lu, dropdown, mark all as read, Realtime Supabase"
+                                  },
+                       "auth":  {
+                                    "AuthFrame":  "Cadre centrÃ© avec logo JP, titre, sous-titre, footer lien login/register",
+                                    "LoginForm":  "Formulaire identifiant + mot de passe, appel Supabase Auth cÃ´tÃ© client",
+                                    "RegisterForm":  "Formulaire inscription, appel POST /api/auth/register",
+                                    "ProfileSettings":  "Formulaire profil (pseudo/nom/bio), upload avatar, changement mdp, quotas, dÃ©connexion, suppression compte"
+                                },
+                       "feed":  {
+                                    "Feed":  "Feed infini avec Composer (scope=all), PostCard list, AdPlaceholder tous les 6 posts, EmptyState, sentinel IntersectionObserver",
+                                    "Composer":  "Zone de crÃ©ation de post â€” texte + image avec preview, validation taille fichier cÃ´tÃ© client",
+                                    "PostCard":  "Carte de post â€” avatar, username colorÃ©, badge rÃ´le, date, corps texte, image Next/Image, actions (like/dislike/commentaires/sauvegarder/signaler/supprimer), menu MoreHorizontal",
+                                    "CommentsPanel":  "Panel commentaires inline sous un post â€” liste + formulaire rÃ©ponse"
+                                },
+                       "chat":  {
+                                    "ChatShell":  "Shell de messagerie â€” liste conversations Ã  gauche, fenÃªtre messages Ã  droite, crÃ©ation conversation par username, envoi message, Realtime Supabase"
+                                },
+                       "moderation":  {
+                                          "AdminDashboard":  "Dashboard â€” liste signalements avec post hydratÃ©, bouton frauduleux/annuler, suppression post (admin), formulaire changement de rÃ´le (admin)"
+                                      },
+                       "shared":  {
+                                      "AdPlaceholder":  "Bloc placeholder publicitÃ© (compact ou normal) â€” aucune vraie pub",
+                                      "EmptyState":  "Ã‰tat vide avec icÃ´ne + titre + description",
+                                      "QuotaMeter":  "Barre de progression quota (upload jour / posts sauvegardÃ©s)",
+                                      "RoleBadge":  "Badge rÃ´le colorÃ© (admin vert / moderator bleu / user point rouge)",
+                                      "SignOutButton":  "Bouton dÃ©connexion Supabase cÃ´tÃ© client",
+                                      "UserAvatar":  "Avatar avec fallback initiales, 3 tailles (sm/md/lg), Image Next"
+                                  }
+                   },
+    "hooks":  {
+                  "useInfiniteFeed":  {
+                                          "file":  "hooks/useInfiniteFeed.ts",
+                                          "description":  "Infinite scroll feed â€” charge les posts par page via cursor, refresh automatique Ã  chaque INSERT Supabase Realtime (scope=all), removePost pour mise Ã  jour optimiste aprÃ¨s suppression",
+                                          "scopes":  [
+                                                         "all",
+                                                         "saved",
+                                                         "user"
+                                                     ],
+                                          "page_size":  15
+                                      }
+              },
+    "lib":  {
+                "lib/auth.ts":  "getCurrentProfile, requireProfile, requireStaffProfile â€” redirige vers /auth/login si non connectÃ©",
+                "lib/auth-identifier.ts":  "identifierToAuthEmail â€” convertit username â†’ username@jpzone.local",
+                "lib/env.ts":  "Accesseurs typÃ©s pour les variables d\u0027environnement avec erreur claire si manquantes",
+                "lib/api.ts":  "jsonOk et jsonError â€” helpers NextResponse.json",
+                "lib/feed.ts":  "hydrateFeedPosts â€” signe les URLs Storage (image_url, avatar_url) pour chaque post",
+                "lib/rate-limit.ts":  "hashRequestIp (SHA-256 de x-forwarded-for), assertRateLimit via RPC check_rate_limit",
+                "lib/route-auth.ts":  "getRouteUser, getRouteProfile, requireAdmin, requireStaff â€” pour les Route Handlers",
+                "lib/shell.ts":  "toShellProfile â€” convertit SessionProfile â†’ ShellProfile avec avatar_url signÃ©",
+                "lib/storage.ts":  "Constantes buckets/limites, signedPostUrl, signedAvatarUrl, removePostMedia",
+                "lib/utils.ts":  "cn, formatCount, timeAgo (fr-FR), initials, bytesToMo",
+                "lib/validation.ts":  "SchÃ©mas Zod (register, login, post, comment, report, message, conversation, profile, role), helpers image (allowedTypes, hasValidImageSignature, cleanText)",
+                "lib/supabase/admin.ts":  "createSupabaseAdminClient â€” service_role, pas de session",
+                "lib/supabase/browser.ts":  "createSupabaseBrowserClient â€” cÃ´tÃ© client",
+                "lib/supabase/server.ts":  "createSupabaseServerClient â€” async, cookies Next",
+                "lib/supabase/rpc.ts":  "supabaseRpc\u003cT\u003e â€” wrapper typÃ© pour client.rpc"
+            },
+    "database":  {
+                     "tables":  {
+                                    "roles":  "RÃ©fÃ©rentiel des rÃ´les (user, moderator, admin)",
+                                    "users":  "Profils utilisateurs â€” id liÃ© Ã  auth.users, username citext unique, role FK vers roles, avatar_path, bio, display_name",
+                                    "posts":  "Posts â€” body (max 560), image_path, image_bytes, storage_bucket, expires_at (+10 jours), contrainte content_check (texte OU image obligatoire)",
+                                    "comments":  "Commentaires â€” liÃ©s Ã  posts (cascade) et users (cascade), body max 360",
+                                    "likes":  "PK composite (post_id, user_id)",
+                                    "dislikes":  "PK composite (post_id, user_id)",
+                                    "saved_posts":  "PK composite (user_id, post_id) â€” pas de duplication de fichiers, juste une relation",
+                                    "reports":  "Signalements â€” unique(post_id, reporter_id), marked_fraudulent, moderator_id, reviewed_at",
+                                    "conversations":  "Conversations privÃ©es â€” last_message_at mis Ã  jour par trigger",
+                                    "conversation_members":  "Membres d\u0027une conversation, read_at pour future fonctionnalitÃ© \u0027lu\u0027",
+                                    "messages":  "Messages privÃ©s â€” body max 1200, cascade sur conversation",
+                                    "notifications":  "Notifications â€” kind, title, body, read_at, actor_id, post_id, conversation_id optionnels",
+                                    "upload_events":  "Historique des uploads par utilisateur pour calcul quota journalier",
+                                    "action_rate_limits":  "Log des actions pour rate limiting (IP hash + user_id)"
+                                },
+                     "rpc_functions":  {
+                                           "get_feed_posts":  "Retourne les posts du feed paginÃ©s par cursor avec compteurs (likes/dislikes/commentaires) et viewer_reaction/viewer_saved",
+                                           "check_rate_limit":  "VÃ©rifie si une action dÃ©passe la limite dans la fenÃªtre de temps (p_action, p_limit, p_window_seconds, p_ip_hash)",
+                                           "can_upload_bytes":  "VÃ©rifie si l\u0027utilisateur n\u0027a pas dÃ©passÃ© 10Mo uploadÃ©s aujourd\u0027hui",
+                                           "register_upload_event":  "Enregistre un Ã©vÃ©nement upload dans upload_events",
+                                           "daily_uploaded_bytes":  "Retourne le total uploadÃ© aujourd\u0027hui par un utilisateur",
+                                           "saved_posts_bytes":  "Retourne la somme des image_bytes des posts sauvegardÃ©s par un utilisateur",
+                                           "cleanup_expired_posts":  "Supprime les posts dont expires_at \u003c now(), retourne le nombre supprimÃ©",
+                                           "expired_post_media_paths":  "Retourne les chemins Storage des posts expirÃ©s (id, bucket, path) avant suppression"
+                                       },
+                     "triggers":  {
+                                      "touch_users_updated_at":  "Met Ã  jour updated_at sur users avant chaque UPDATE",
+                                      "touch_posts_updated_at":  "Met Ã  jour updated_at sur posts avant chaque UPDATE",
+                                      "prevent_role_escalation_trigger":  "EmpÃªche la modification de rÃ´le sans Ãªtre admin ou service_role",
+                                      "on_auth_user_created":  "CrÃ©e automatiquement une ligne dans public.users Ã  l\u0027inscription Supabase Auth",
+                                      "update_conversation_last_message":  "Met Ã  jour last_message_at dans conversations Ã  chaque INSERT dans messages"
+                                  },
+                     "rls":  {
+                                 "enabled_on_all_tables":  true,
+                                 "key_policies":  [
+                                                      "posts: SELECT uniquement les non-expirÃ©s (expires_at \u003e now()) pour les authentifiÃ©s",
+                                                      "posts: DELETE uniquement par l\u0027auteur ou admin",
+                                                      "comments: SELECT uniquement sur posts non-expirÃ©s",
+                                                      "reports: SELECT par reporter OU staff (is_moderator)",
+                                                      "reports: UPDATE uniquement par staff",
+                                                      "conversations/messages: accÃ¨s uniquement aux membres (is_conversation_member)",
+                                                      "notifications: SELECT/UPDATE uniquement par user_id = auth.uid()",
+                                                      "users: UPDATE uniquement par soi-mÃªme (sauf admin via service_role)"
+                                                  ]
+                             },
+                     "storage_buckets":  {
+                                             "avatars":  {
+                                                             "public":  false,
+                                                             "max_size_bytes":  2097152,
+                                                             "allowed_types":  [
+                                                                                   "image/jpeg",
+                                                                                   "image/png",
+                                                                                   "image/webp"
+                                                                               ],
+                                                             "url_type":  "signed URLs (1 heure)"
+                                                         },
+                                             "post-media":  {
+                                                                "public":  false,
+                                                                "max_size_bytes":  5242880,
+                                                                "allowed_types":  [
+                                                                                      "image/jpeg",
+                                                                                      "image/png",
+                                                                                      "image/webp",
+                                                                                      "image/gif"
+                                                                                  ],
+                                                                "url_type":  "signed URLs (1 heure)"
+                                                            }
+                                         },
+                     "realtime_tables":  [
+                                             "messages",
+                                             "notifications",
+                                             "posts",
+                                             "comments"
+                                         ]
+                 },
+    "quotas_and_limits":  {
+                              "upload_per_day_per_user":  "10 Mo (DAILY_UPLOAD_BYTES = 10 * 1024 * 1024)",
+                              "saved_posts_total_per_user":  "25 Mo (SAVED_POSTS_BYTES = 25 * 1024 * 1024)",
+                              "max_post_image":  "5 Mo",
+                              "max_avatar":  "2 Mo",
+                              "post_expiry":  "10 jours aprÃ¨s crÃ©ation",
+                              "post_body_max":  560,
+                              "comment_body_max":  360,
+                              "message_body_max":  1200,
+                              "bio_max":  160,
+                              "display_name_max":  40,
+                              "username_min":  3,
+                              "username_max":  24,
+                              "rate_limits":  {
+                                                  "create_post":  "8/heure",
+                                                  "comment_post":  "20/heure",
+                                                  "react_post":  "80/heure",
+                                                  "save_post":  "60/heure",
+                                                  "report_post":  "10/heure",
+                                                  "send_message":  "80/heure",
+                                                  "create_conversation":  "12/heure",
+                                                  "update_profile":  "20/heure",
+                                                  "update_avatar":  "8/heure",
+                                                  "update_password":  "5/heure",
+                                                  "delete_account":  "2/24h",
+                                                  "register":  "5 comptes/IP/24h"
+                                              }
+                          },
+    "design_system":  {
+                          "theme":  "dark",
+                          "background":  "#07090d (ink)",
+                          "panel":  "#0d1118",
+                          "panelSoft":  "#131923",
+                          "border":  "#253041 (line)",
+                          "danger_red":  "#ff3b5f (utilisateurs, actions destructives, bouton principal)",
+                          "admin_green":  "#31df82 (admin)",
+                          "sky_blue":  "#4cc9f0 (moderateur, boutons secondaires, liens)",
+                          "note_yellow":  "#ffd166 (bookmarks, notes)",
+                          "font":  "Inter",
+                          "scrollbar":  "custom dark webkit",
+                          "glass_panel":  "rgba(13,17,24,0.84) + blur(18px)",
+                          "focus_ring":  "box-shadow sky 0.38 opacity"
+                      },
+    "security":  {
+                     "passwords":  "HashÃ©s par Supabase Auth (bcrypt)",
+                     "email":  "Jamais demandÃ© ni affichÃ© â€” email technique invisible gÃ©nÃ©rÃ© cÃ´tÃ© serveur",
+                     "rls":  "ActivÃ© sur toutes les tables",
+                     "validation":  "Zod cÃ´tÃ© serveur sur tous les inputs",
+                     "image_upload":  "VÃ©rification MIME type + signature magic bytes (JPEG/PNG/GIF/WebP)",
+                     "rate_limiting":  "CÃ´tÃ© base de donnÃ©es via RPC check_rate_limit + table action_rate_limits",
+                     "anti_spam_register":  "Max 5 comptes/IP/24h via action_rate_limits",
+                     "xss":  "Pas de dangerouslySetInnerHTML, tout le contenu est escapÃ© par React",
+                     "sql_injection":  "Supabase client paramÃ©trÃ© + RLS, aucune requÃªte SQL raw cÃ´tÃ© app",
+                     "storage":  "Buckets privÃ©s, URLs signÃ©es expirantes (1h), dossiers par user_id",
+                     "role_escalation":  "Trigger prevent_role_escalation bloque toute modification de rÃ´le sans service_role ou admin",
+                     "cron":  "ProtÃ©gÃ© par CRON_SECRET (Bearer ou query param)"
+                 },
+    "realtime":  {
+                     "feed":  "useInfiniteFeed Ã©coute INSERT sur posts pour rafraÃ®chir automatiquement le feed (scope=all)",
+                     "chat":  "ChatShell Ã©coute INSERT sur messages filtrÃ© par conversation_id pour affichage instantanÃ©",
+                     "notifications":  "NotificationsButton Ã©coute INSERT sur notifications filtrÃ© par user_id"
+                 },
+    "ads":  {
+                "status":  "placeholder uniquement â€” aucune vraie publicitÃ©",
+                "component":  "AdPlaceholder (compact ou normal)",
+                "locations":  [
+                                  "Sidebar desktop (compact)",
+                                  "Colonne droite du feed (full)",
+                                  "Entre les posts tous les 6 posts"
+                              ]
+            },
+    "file_structure":  {
+                           "app/":  "Pages App Router Next.js et Routes API",
+                           "app/admin/page.tsx":  "Page dashboard modÃ©ration",
+                           "app/api/":  "Routes API (voir api_routes)",
+                           "app/auth/login/page.tsx":  "Page login",
+                           "app/auth/register/page.tsx":  "Page inscription",
+                           "app/chat/page.tsx":  "Page chat",
+                           "app/feed/page.tsx":  "Page feed principal",
+                           "app/profile/[username]/page.tsx":  "Page profil public",
+                           "app/saved/page.tsx":  "Page sauvegardes",
+                           "app/settings/page.tsx":  "Page paramÃ¨tres",
+                           "app/globals.css":  "CSS global (Tailwind, scrollbar, glass-panel, focus-ring)",
+                           "app/layout.tsx":  "RootLayout avec metadata et viewport",
+                           "app/page.tsx":  "Redirect vers /feed",
+                           "components/auth/":  "AuthFrame, LoginForm, RegisterForm, ProfileSettings",
+                           "components/chat/":  "ChatShell",
+                           "components/feed/":  "Feed, Composer, PostCard, CommentsPanel",
+                           "components/layout/":  "AppShell, Sidebar, TopBar, MobileNav, NotificationsButton",
+                           "components/moderation/":  "AdminDashboard",
+                           "components/shared/":  "AdPlaceholder, EmptyState, QuotaMeter, RoleBadge, SignOutButton, UserAvatar",
+                           "hooks/useInfiniteFeed.ts":  "Hook infinite scroll avec Realtime",
+                           "lib/auth.ts":  "Auth serveur (requireProfile, etc.)",
+                           "lib/auth-identifier.ts":  "Conversion username â†’ email technique",
+                           "lib/env.ts":  "Accesseurs env vars",
+                           "lib/api.ts":  "Helpers jsonOk/jsonError",
+                           "lib/feed.ts":  "hydrateFeedPosts",
+                           "lib/rate-limit.ts":  "hashRequestIp, assertRateLimit",
+                           "lib/route-auth.ts":  "Guards pour Route Handlers",
+                           "lib/shell.ts":  "toShellProfile",
+                           "lib/storage.ts":  "Constantes et helpers Storage",
+                           "lib/utils.ts":  "cn, formatCount, timeAgo, initials, bytesToMo",
+                           "lib/validation.ts":  "Tous les schÃ©mas Zod + helpers image",
+                           "lib/supabase/admin.ts":  "Client admin (service_role)",
+                           "lib/supabase/browser.ts":  "Client browser",
+                           "lib/supabase/server.ts":  "Client server (cookies)",
+                           "lib/supabase/rpc.ts":  "Wrapper RPC typÃ©",
+                           "types/database.ts":  "Types Database Supabase, FeedPostRow, FeedPost, SessionProfile, Role",
+                           "types/api.ts":  "FeedResponse, CommentResponse, NotificationItem, ApiErrorBody",
+                           "supabase/schema.sql":  "SchÃ©ma complet (tables, index, triggers, fonctions, RLS, buckets Storage, Realtime)",
+                           "supabase/seed.sql":  "Optionnel â€” passer un compte en admin par username",
+                           "middleware.ts":  "RafraÃ®chit la session Supabase sur chaque requÃªte (Edge runtime, format Next compatible OpenNext)",
+                           "next.config.mjs":  "Config Next.js",
+                           "open-next.config.ts":  "Config OpenNext Cloudflare",
+                           "wrangler.jsonc":  "Config Wrangler pour Cloudflare Workers/Pages",
+                           "tailwind.config.ts":  "Couleurs custom, font Inter, shadow glow",
+                           "tsconfig.json":  "TypeScript strict, paths @/*, incremental, ignoreDeprecations 6.0",
+                           "vercel.json":  "Cron daily /api/cron/cleanup Ã  3h",
+                           "package.json":  "Scripts: build, build:cloudflare, dev, start, typecheck, preview, deploy, upload, cf-typegen",
+                           ".env.example":  "Placeholders variables d\u0027environnement",
+                           ".dev.vars":  "Variables pour wrangler dev (Cloudflare local)",
+                           ".gitignore":  "Exclut .env.local, .env, .next, node_modules, .vercel, tsconfig.tsbuildinfo, screenshots, desktop.ini, artefacts OpenNext/Wrangler",
+                           ".dev.vars.example":  "Template Wrangler local sans secrets"
+                       },
+    "known_issues_and_notes":  [
+                                   "Next 16 marque middleware.ts comme deprecie au profit de proxy.ts - mais proxy.ts est runtime Node et casse OpenNext/Cloudflare. Garder middleware.ts tel quel tant que OpenNext requiert Edge Middleware.",
+                                   "tsconfig.json contient \u0027ignoreDeprecations\u0027: \u00276.0\u0027 pour gerer les warnings TypeScript lies a Next 16",
+                                   "npm audit --audit-level=high est vert apres npm audit fix. npm audit complet signale encore 2 vulnerabilites moderees dans postcss embarque par Next; la correction proposee retrograderait Next vers 9.3.3, ne pas appliquer.",
+                                   "2026-06-20: typecheck OK, build Next OK, build Cloudflare OpenNext OK, wrangler deploy --dry-run OK.",
+                                   "2026-06-20: inscription basculee sur admin.auth.admin.createUser(email_confirm: true) pour eviter tout blocage de confirmation email invisible.",
+                                   "2026-06-20: sauvegarde de post verifie maintenant le quota 25 Mo cote route avant insert; le trigger BDD ensure_saved_quota reste la protection finale.",
+                                   "Les tokens GitHub et cles Supabase de test presents dans l ancien chat sont a considerer comme compromis et a regenerer avant production.",
+                                   "Le repo GitHub (adamaroua/R-seau_JP) contient un commit racine unique (sans historique git) pousse via l API GitHub.",
+                                   "screenshots/ est dans .gitignore",
+                                   "tsconfig.tsbuildinfo est dans .gitignore (cache local TypeScript)"
+                               ],
+    "todo_and_future_features":  [
+                                     "Deployer sur Cloudflare avec npm run deploy ou connecter le projet Cloudflare a la branche principale avec les variables environnement configurees",
+                                     "Configurer CRON_SECRET, NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, SUPABASE_SECRET_KEY et NEXT_PUBLIC_SITE_URL dans Cloudflare avant ouverture publique",
+                                     "Regenerer les cles/tokens qui ont ete partages dans les anciens chats avant production",
+                                     "Configurer les emails Supabase avec un vrai domaine si le site grandit",
+                                     "Ajouter une charte d utilisation et une page contact avant ouverture publique",
+                                     "Integrer de vraies publicites quand le site sera pret (remplacer AdPlaceholder)",
+                                     "Implementer la fonctionnalite \u0027lu/non-lu\u0027 avancee dans les conversations si besoin (read_at existe deja en BDD)",
+                                     "Ajouter des notifications pour les likes/commentaires si souhaite",
+                                     "Envisager un captcha ou protection bot Supabase pour limiter les inscriptions abusives"
+                                 ]
+}
