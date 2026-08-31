@@ -1,0 +1,20 @@
+name: Cron Cleanup
+
+on:
+  schedule:
+    # Runs every day at 3:00 AM UTC
+    - cron: '0 3 * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Trigger cleanup endpoint
+        run: |
+          curl -X POST "${{ secrets.NEXT_PUBLIC_SITE_URL }}/api/cron/cleanup" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
