@@ -14,7 +14,4 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Trigger cleanup endpoint
-        run: |
-          curl -X POST "${{ secrets.NEXT_PUBLIC_SITE_URL }}/api/cron/cleanup" \
-            -H "Content-Type: application/json" \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+        run: curl -X POST "${{ secrets.NEXT_PUBLIC_SITE_URL }}/api/cron/cleanup" -H "Content-Type: application/json" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
