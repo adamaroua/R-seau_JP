@@ -1,6 +1,6 @@
 # Document de passation IA - Jean Prevost Social
 
-Date de reference: 2026-08-01  
+Date de reference: 2026-09-05  
 Projet local: `C:\Users\adama\Documents\Reseau Lycee`  
 Repo cible connu: `github.com/adamaroua/R-seau_JP`  
 Domaine public vise: `https://jpzone.duckdns.org`
