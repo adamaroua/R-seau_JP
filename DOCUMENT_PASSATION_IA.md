@@ -1289,7 +1289,7 @@ Pas de suite de tests unitaires/e2e pour l'instant. Les controles actuels sont p
 - Mise a jour complete du document de passation pour ne mentionner que Cloudflare.
 - Configuration des 7 secrets GitHub Actions pour le deploiement automatique :
   - `CLOUDFLARE_API_TOKEN` : token API Cloudflare
-  - `CLOUDFLARE_ACCOUNT_ID` : ID du compte Cloudflare (2e5aa0740e4a074682db59672e9e7fb3)
+  - `CLOUDFLARE_ACCOUNT_ID` : ID du compte Cloudflare (2e5aac0740a4a074682db59672e9e7fb3)
   - `NEXT_PUBLIC_SUPABASE_URL` : URL du projet Supabase (https://yvwlpwfnhdijggpvhgno.supabase.co)
   - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` : cle publique Supabase
   - `SUPABASE_SECRET_KEY` : cle service_role Supabase
